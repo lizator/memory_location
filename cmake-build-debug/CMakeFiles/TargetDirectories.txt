@@ -1,0 +1,3 @@
+/home/lizator/Downloads/mem_allo/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/lizator/Downloads/mem_allo/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/home/lizator/Downloads/mem_allo/cmake-build-debug/CMakeFiles/mem_allo.dir

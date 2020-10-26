@@ -1,0 +1,26 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/lizator/Downloads/mem_allo/mymem.c
+stdlib.h
+-
+string.h
+-
+stdio.h
+-
+assert.h
+-
+mymem.h
+/home/lizator/Downloads/mem_allo/mymem.h
+time.h
+-
+
+/home/lizator/Downloads/mem_allo/mymem.h
+stddef.h
+-
+

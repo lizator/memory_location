@@ -56,6 +56,23 @@ void initmem(strategies strategy, size_t sz)
 
 	if (myMemory != NULL) free(myMemory); /* in case this is not the first time initmem2 is called */
 
+	if (head != NULL) {
+	    curr = head;
+	    head = NULL;
+	    next = NULL;
+	    while (1){
+	        if (curr->next != NULL) {
+	            curr = curr->next;
+	            free(curr->last);
+	        } else {
+	            free(curr);
+	            curr = NULL;
+                break;
+	        }
+	    }
+
+	}
+
 	/* TODO: release any other memory you were using for bookkeeping when doing a re-initialization! */
 
 
@@ -80,6 +97,10 @@ void initmem(strategies strategy, size_t sz)
 void *mymalloc(size_t requested)
 {
 	assert((int)myStrategy > 0);
+
+	if (requested > mem_largest_free()){
+        return NULL;
+	}
 	
 	switch (myStrategy)
 	  {
@@ -137,6 +158,9 @@ void *mymalloc(size_t requested)
 /* Frees a block of memory previously allocated by mymalloc. */
 void myfree(void* block)
 {
+    if (block == NULL) {
+        return;
+    }
     curr = head; //start at head
 	while (1) { //loop though list to find block pointed at
 	    if (curr->ptr == block && curr->alloc) { //If found block and allocated
@@ -393,7 +417,8 @@ void print_memory_status()
 void try_mymem(int argc, char **argv) {
 
     strategies strat;
-	void *a, *b, *c, *d, *e;
+    strat = Best;
+	/*void *a, *b, *c, *d, *e;
     strat = Best;
 
 	
@@ -422,15 +447,14 @@ void try_mymem(int argc, char **argv) {
     print_memory_status();
     myfree(c);
     print_memory();
-    print_memory_status();
-
-
+    print_memory_status();*/
 
 
 }
 
 
+
 /*int main() { //main for debugging
-    try_mymem(0, "best");
+    do_stress_tests(0, "best");
     return 0;
 }*/

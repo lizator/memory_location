@@ -56,7 +56,7 @@ void initmem(strategies strategy, size_t sz)
 
 	if (myMemory != NULL) free(myMemory); /* in case this is not the first time initmem2 is called */
 
-	if (head != NULL) {
+	if (head != NULL) { //Frees all
 	    curr = head;
 	    head = NULL;
 	    next = NULL;
@@ -85,6 +85,10 @@ void initmem(strategies strategy, size_t sz)
 	head->alloc = 0;
 	head->ptr = myMemory;
 
+	if (myStrategy == Next) {
+	    next = head;
+	}
+
 
 }
 
@@ -93,6 +97,116 @@ void initmem(strategies strategy, size_t sz)
  *  Otherwise, it returns a pointer to the newly allocated block.
  *  Restriction: requested >= 1 
  */
+
+// Søg funktion for Worst-Fit strategi.
+// gotten from Volkan Isik s180103
+struct memoryList* worstSearch(size_t size){
+    struct memoryList *search = NULL;
+    struct memoryList *biggestnode = NULL;
+    search = head;
+    int worstSize = 0;
+
+    while (search!=NULL){
+        if(search->size>=size && search->alloc==0){
+            if(search->size > worstSize) {
+                biggestnode = search;
+                worstSize = search->size;
+            }
+        }
+        search=search->next;
+    }
+    if(biggestnode != NULL)
+        return biggestnode;
+    else
+        return NULL;
+}
+
+// Søg funktion for First-Fit strategi.
+// gotten from Volkan Isik s180103
+struct memoryList* firstSearch(size_t size){
+    struct memoryList *search = NULL;
+    search = head;
+
+    while (search!=NULL){
+        if(search->size >= size && search->alloc==0){
+            return search;
+        }
+        search=search->next;
+    }
+    return NULL;
+}
+
+//Opretter en memoryblock og placerer den før eller overtager den block der blev givet.
+// gotten from Volkan Isik s180103
+struct memoryList* insert(struct memoryList* explode, size_t size){
+
+    if(explode->size==size && explode->alloc==0){
+        explode->alloc=1;
+        if(explode->next==NULL){
+            explode->ptr=explode->last->ptr+explode->last->size;
+        }
+        return explode;
+    }
+
+    //Opretter en ny node og placerer den i iforhold til given block
+    struct memoryList *node = (struct memoryList*) malloc(sizeof(struct memoryList)*1);
+    node->size=size;
+    node->alloc=1;
+    if(explode->last!=NULL)
+        node->ptr=(explode->last->ptr+explode->last->size);
+    else
+        node->ptr=explode->ptr;
+    explode->size-=size;
+
+    if(explode->last != NULL){
+        explode->last->next=node;
+        node->last=explode->last;
+        node->next=explode;
+        explode->last=node;
+    } else{
+        node->last=NULL;
+        node->next=explode;
+        explode->last=node;
+        head = node;
+    }
+    return node;
+}
+
+/* Denne metode indsætter en ny node efter den valgte node.  */
+void insertNewNodeAfter(struct memoryList *trav, size_t requested, void *travPtr){
+
+    if(trav == NULL){
+        return;
+    }
+
+    /* Her bliver den nye node alloceret i vores hukommelse.  */
+    struct memoryList *newNode = malloc(sizeof(struct memoryList));
+
+    /* Hvis vores nodes next_node ikke er NULL kan pointerne blive opdeateret */
+    if(trav -> next != NULL){
+        newNode -> next = trav -> next;
+        trav -> next -> last = newNode;
+
+        newNode -> last = trav;
+        trav -> next = newNode;
+    }
+        /* Hvis vores nodes next_node er lig med null er det slutningen af vores liste og pointerne bliver opdateret */
+    else{
+        trav -> next = newNode;
+        newNode -> last = trav;
+        newNode -> next = NULL;
+        //tail = newNode;
+    }
+
+    /* Her sætter vi den nye nods parameter */
+    newNode -> size = trav -> size - requested;
+    newNode -> alloc = 0;
+    newNode -> ptr = travPtr + requested;
+
+    /* Her sætter vi den gamle nodes parametre.  */
+    trav -> alloc = 1;
+    trav -> size = requested;
+}
 
 void *mymalloc(size_t requested)
 {
@@ -107,7 +221,12 @@ void *mymalloc(size_t requested)
 	  case NotSet: 
 	            return NULL;
 	  case First:
-	            return NULL;
+      { //Gotten from Volkan Isik s180103
+          struct memoryList *explode = firstSearch(requested);
+          if(explode)
+              return insert(explode,requested)->ptr;
+          break;
+      }
 	  case Best:
 	      curr = head; //Start at head
 	      while (1) {
@@ -147,9 +266,55 @@ void *mymalloc(size_t requested)
               return new->last->ptr;
 	      }
 	  case Worst:
-	            return NULL;
+      {
+          //søger efter en fri memoryblok som er den største i hele memory'et
+          struct memoryList *explode = worstSearch(requested);
+          if(explode)
+              //memoryblok placeres og pointeren returneres
+              return insert(explode,requested)->ptr;
+          break;
+      }
 	  case Next:
-	            return NULL;
+          while (curr -> size <= requested && curr -> alloc != 0){
+              if(curr -> next == NULL){
+                  curr = head;
+              }
+              else if(curr -> next == next){
+                  return NULL;
+              }
+              else{
+                  curr = curr -> next;
+              }
+          }
+
+              /* Når vi så har fundet vores node kigger vi på om størrelsen passer. */
+              if(curr -> size >= requested){
+
+                  /* Hvis størrelsen passer præcist skal dens allocering bare sættes til 1. */
+                  if(curr -> size == requested){
+                      curr -> alloc = 1;
+                      if(curr -> next == NULL){
+                          next = head;
+                      }
+                      else{
+                          next = curr;
+                      }
+                      return curr -> ptr;
+                  }
+
+                  /* Vi sætter den nye node ind. */
+                  insertNewNodeAfter(curr, requested, curr -> ptr);
+
+              }
+
+              /* Her opdatere vi vores next pointer til det næste. Hvis den er ved slutningen bliver det sat til head ellers den næste. */
+              if (curr -> next != NULL){
+                  next = curr -> next;
+              }
+              else{
+                  next = head;
+              }
+              return curr->ptr;
 	  }
 	return NULL;
 }
@@ -195,7 +360,7 @@ void myfree(void* block)
                 }
             }
             return;
-	    } else if (curr-next != NULL) { //go to next if not found yet
+	    } else if (curr->next != NULL) { //go to next if not found yet
             curr = curr->next;
         } else {
             return;
@@ -417,9 +582,8 @@ void print_memory_status()
 void try_mymem(int argc, char **argv) {
 
     strategies strat;
-    strat = Best;
-	/*void *a, *b, *c, *d, *e;
-    strat = Best;
+	void *a, *b, *c, *d, *e;
+    strat = Next;
 
 	
 	initmem(strat,500);
@@ -447,7 +611,7 @@ void try_mymem(int argc, char **argv) {
     print_memory_status();
     myfree(c);
     print_memory();
-    print_memory_status();*/
+    print_memory_status();
 
 
 }
@@ -455,6 +619,6 @@ void try_mymem(int argc, char **argv) {
 
 
 /*int main() { //main for debugging
-    do_stress_tests(0, "best");
+    try_mymem(0, "best");
     return 0;
 }*/
